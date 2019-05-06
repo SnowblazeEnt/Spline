@@ -27,6 +27,24 @@ namespace SnowblazeEntertainment.Tools.Spline
 		{
 			spline = target as BezierSpline;
 			EditorGUI.BeginChangeCheck();
+			float stepWorldUnits = EditorGUILayout.FloatField("Step world units", spline.StepWorldUnits);
+			if(EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(spline, "StepWorldUnits");
+				EditorUtility.SetDirty(spline);
+				spline.StepWorldUnits = stepWorldUnits;
+				spline.GenerateLUT();
+			}
+			EditorGUI.BeginChangeCheck();
+			float radius = EditorGUILayout.FloatField("Radius", spline.Radius);
+			if(EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(spline, "Radius");
+				EditorUtility.SetDirty(spline);
+				spline.Radius = radius;
+				spline.GenerateLUT();
+			}
+			EditorGUI.BeginChangeCheck();
 			bool loop = EditorGUILayout.Toggle("Loop", spline.Loop);
 			if (EditorGUI.EndChangeCheck()) 
 			{
@@ -44,6 +62,10 @@ namespace SnowblazeEntertainment.Tools.Spline
 				spline.AddCurve();
 				EditorUtility.SetDirty(spline);
 			}
+			if(GUILayout.Button("GenerateLUT"))
+			{
+				spline.GenerateLUT();
+			}
 		}
 
 		private void DrawSelectedPointInspector() 
@@ -56,6 +78,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 				Undo.RecordObject(spline, "Move Point");
 				EditorUtility.SetDirty(spline);
 				spline.SetControlPoint(selectedIndex, point);
+				spline.GenerateLUT();
 			}
 			EditorGUI.BeginChangeCheck();
 			BezierControlPointMode mode = (BezierControlPointMode)EditorGUILayout.EnumPopup("Mode", spline.GetControlPointMode(selectedIndex));
@@ -84,7 +107,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 				Handles.DrawLine(p0, p1);
 				Handles.DrawLine(p2, p3);
 				
-				Handles.DrawBezier(p0, p3, p1, p2, Color.white, null, 2f);
+				Handles.DrawBezier(p0, p3, p1, p2, Color.blue, null, 2f);
 				p0 = p3;
 			}
 			ShowDirections();
@@ -126,6 +149,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 					Undo.RecordObject(spline, "Move Point");
 					EditorUtility.SetDirty(spline);
 					spline.SetControlPoint(index, handleTransform.InverseTransformPoint(point));
+					spline.GenerateLUT();
 				}
 			}
 			return point;

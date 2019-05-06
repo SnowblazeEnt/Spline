@@ -1,5 +1,8 @@
 ﻿using UnityEngine;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
 
 namespace SnowblazeEntertainment.Tools.Spline
 {
@@ -7,12 +10,18 @@ namespace SnowblazeEntertainment.Tools.Spline
 	{
 		[SerializeField]
 		private Vector3[] points;
-
 		[SerializeField]
 		private BezierControlPointMode[] modes;
-
 		[SerializeField]
 		private bool loop;
+		[SerializeField]
+		private float stepWorldUnits = 0.005f;
+		[SerializeField]
+		private float radius = 1.0f;
+		[SerializeField]
+		private float borderRadius = 0.1f;
+		[SerializeField]
+		private float[] lengths;
 
 		public bool Loop 
 		{
@@ -29,6 +38,30 @@ namespace SnowblazeEntertainment.Tools.Spline
 					SetControlPoint(0, points[0]);
 				}
 			}
+		}
+		public float StepWorldUnits 
+		{ 
+			get 
+			{
+				return stepWorldUnits; 
+			}
+
+			set
+			{
+				stepWorldUnits = value;
+			} 
+		}
+		public float Radius 
+		{ 
+			get 
+			{
+				return radius; 
+			}
+
+			set
+			{
+				radius = value;
+			} 
 		}
 
 		public int ControlPointCount { get { return points.Length; } }
@@ -228,6 +261,259 @@ namespace SnowblazeEntertainment.Tools.Spline
 				BezierControlPointMode.Free,
 				BezierControlPointMode.Free
 			};
+		}
+
+		public void GenerateLUT()
+		{
+			RecalculateLengths();
+
+			List<Vector3> tempLUT = new List<Vector3>();
+			List<Vector3> lut = new List<Vector3>();
+
+			float step = stepWorldUnits / lengths.Sum();
+
+			for (float i = 0.0f; i < 1.0f; i += step)
+			{
+				tempLUT.Add(GetPoint(i));
+			}
+
+			tempLUT.Add(GetPoint(1.0f));
+
+			lut.Add(tempLUT.First());
+			Vector3 prevPos = lut.First();
+			float stepSquared = stepWorldUnits * stepWorldUnits;
+
+			for (int i = 0; i < tempLUT.Count; i++)
+			{
+				if((tempLUT[i] - prevPos).sqrMagnitude - stepSquared < 0.0f) continue;
+
+				Vector3 direction = (tempLUT[i--] - prevPos).normalized;
+				lut.Add(prevPos + direction * stepWorldUnits);
+
+				prevPos = lut.Last();
+			}
+
+			if(lut.Last() != tempLUT.Last())
+				lut.Add(tempLUT.Last());
+
+			GenerateMesh(lut);
+			GenerateBorders(lut);
+		}
+
+		private void RecalculateLengths()
+		{
+			Vector3 previousPoint = transform.TransformPoint(Bezier.GetPoint(points[0], points[1], points[2], points[3], 0.0f));
+			lengths = new float[CurveCount];
+			for (float i = 0.0f; i <= 1.0f; i += 0.01f)
+			{
+				int t;
+				float y = i;
+				if (y >= 1f) 
+				{
+					y = 1f;
+					t = points.Length - 4;
+				}
+				else 
+				{
+					y = Mathf.Clamp01(y) * CurveCount;
+					t = (int)y;
+					y -= t;
+					t *= 3;
+				}
+				Vector3 currentPoint = transform.TransformPoint(Bezier.GetPoint(points[t], points[t + 1], points[t + 2], points[t + 3], y));
+				lengths[t / 3] += (currentPoint - previousPoint).magnitude;
+				previousPoint = currentPoint;
+			}
+
+			//totalLength = lengths.Sum();
+		}
+
+		private void DrawSpline(List<Vector3> lut)
+		{
+			foreach (var item in transform.GetComponentsInChildren<MeshRenderer>())
+			{
+				DestroyImmediate(item.gameObject);
+			}
+
+			for(int i = 0; i < lut.Count; i++)
+			{
+				GameObject go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+				//go.transform.localScale = Vector3.one * 0.01f;
+				go.name = i.ToString();
+				go.transform.SetParent(transform);
+				go.transform.position = lut[i];
+			}
+		}
+
+		private void GenerateMesh(List<Vector3> lut)
+		{
+			List<Vector3> vertices = new List<Vector3>();
+			List<int> triangles = new List<int>();
+			List<Vector2> uvs = new List<Vector2>();
+
+			Vector3 cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
+			vertices.Add(lut[0] - cross * radius);
+			vertices.Add(lut[0] + cross * radius);
+
+			for (int i = 1; i < lut.Count - 1; i++)
+			{
+				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
+				vertices.Add(lut[i] - cross * radius);
+				vertices.Add(lut[i] + cross * radius);
+			}
+
+			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
+			vertices.Add(lut[lut.Count - 1] - cross * radius);
+			vertices.Add(lut[lut.Count - 1] + cross * radius);
+
+			triangles.Add(2);
+			triangles.Add(1);
+			triangles.Add(0);
+			triangles.Add(3);
+			triangles.Add(1);
+			triangles.Add(2);
+
+			for (int i = 6; i < (vertices.Count - 2) * 3; i++)
+			{
+				triangles.Add(triangles[i - 6] + 2);
+			}
+
+			for (int i = 0; i < vertices.Count; i++)
+			{
+				uvs.Add(new Vector2(i % 2 == 0 ? 1 : 0, i / 2));
+			}
+
+			Mesh mesh = new Mesh();
+			mesh.vertices = vertices.ToArray();
+			mesh.triangles = triangles.ToArray();
+			mesh.uv = uvs.ToArray();
+			mesh.RecalculateNormals();
+
+			Transform roadTransform = transform.Find("Road");
+			if(roadTransform != null)
+			{
+				DestroyImmediate(roadTransform.gameObject);
+			}
+
+			GameObject roadGO = new GameObject("Road");
+			roadGO.transform.SetParent(transform);
+			MeshRenderer meshRenderer = roadGO.AddComponent<MeshRenderer>();
+			meshRenderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Road.mat");
+			MeshFilter meshFilter = roadGO.AddComponent<MeshFilter>();
+			meshFilter.mesh = mesh;
+		}
+
+		private void GenerateBorders(List<Vector3> lut)
+		{
+			List<Vector3> vertices = new List<Vector3>();
+			List<int> triangles = new List<int>();
+			List<Vector2> uvs = new List<Vector2>();
+
+			Vector3 cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
+			vertices.Add(lut[0] - cross * (radius + borderRadius));
+			vertices.Add(lut[0] - cross * radius);
+
+			for (int i = 1; i < lut.Count - 1; i++)
+			{
+				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
+				vertices.Add(lut[i] - cross * (radius + borderRadius));
+				vertices.Add(lut[i] - cross * radius);
+			}
+
+			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
+			vertices.Add(lut[lut.Count - 1] - cross * (radius + borderRadius));
+			vertices.Add(lut[lut.Count - 1] - cross * radius);
+
+			triangles.Add(2);
+			triangles.Add(1);
+			triangles.Add(0);
+			triangles.Add(3);
+			triangles.Add(1);
+			triangles.Add(2);
+
+			for (int i = 6; i < (vertices.Count - 2) * 3; i++)
+			{
+				triangles.Add(triangles[i - 6] + 2);
+			}
+
+			for (int i = 0; i < vertices.Count; i++)
+			{
+				uvs.Add(new Vector2(i % 2 == 0 ? 1 : 0, i / 2));
+			}
+
+			Mesh mesh = new Mesh();
+			mesh.vertices = vertices.ToArray();
+			mesh.triangles = triangles.ToArray();
+			mesh.uv = uvs.ToArray();
+			mesh.RecalculateNormals();
+
+			Transform roadTransform = transform.Find("LeftBorder");
+			if(roadTransform != null)
+			{
+				DestroyImmediate(roadTransform.gameObject);
+			}
+
+			GameObject roadGO = new GameObject("LeftBorder");
+			roadGO.transform.SetParent(transform);
+			MeshRenderer meshRenderer = roadGO.AddComponent<MeshRenderer>();
+			meshRenderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Border.mat");
+			MeshFilter meshFilter = roadGO.AddComponent<MeshFilter>();
+			meshFilter.mesh = mesh;
+
+			vertices.Clear();
+			triangles.Clear();
+			uvs.Clear();
+
+			cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
+			vertices.Add(lut[0] + cross * radius);
+			vertices.Add(lut[0] + cross * (radius + borderRadius));
+
+			for (int i = 1; i < lut.Count - 1; i++)
+			{
+				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
+				vertices.Add(lut[i] + cross * radius);
+				vertices.Add(lut[i] + cross * (radius + borderRadius));
+			}
+
+			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
+			vertices.Add(lut[lut.Count - 1] + cross * radius);
+			vertices.Add(lut[lut.Count - 1] + cross * (radius + borderRadius));
+
+			triangles.Add(2);
+			triangles.Add(1);
+			triangles.Add(0);
+			triangles.Add(3);
+			triangles.Add(1);
+			triangles.Add(2);
+
+			for (int i = 6; i < (vertices.Count - 2) * 3; i++)
+			{
+				triangles.Add(triangles[i - 6] + 2);
+			}
+
+			for (int i = 0; i < vertices.Count; i++)
+			{
+				uvs.Add(new Vector2(i % 2 == 0 ? 1 : 0, i / 2));
+			}
+
+			mesh = new Mesh();
+			mesh.vertices = vertices.ToArray();
+			mesh.triangles = triangles.ToArray();
+			mesh.uv = uvs.ToArray();
+			mesh.RecalculateNormals();
+
+			roadTransform = transform.Find("RightBorder");
+			if(roadTransform != null)
+			{
+				DestroyImmediate(roadTransform.gameObject);
+			}
+
+			roadGO = new GameObject("RightBorder");
+			roadGO.transform.SetParent(transform);
+			meshRenderer = roadGO.AddComponent<MeshRenderer>();
+			meshRenderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Border.mat");
+			meshFilter = roadGO.AddComponent<MeshFilter>();
+			meshFilter.mesh = mesh;
 		}
 	}
 }
