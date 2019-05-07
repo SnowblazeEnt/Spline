@@ -1,8 +1,10 @@
-﻿using UnityEditor;
+﻿using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace SnowblazeEntertainment.Tools.Spline
 {
+	[CanEditMultipleObjects]
 	[CustomEditor(typeof(BezierSpline))]
 	public class BezierSplineInspector : Editor 
 	{
@@ -23,94 +25,101 @@ namespace SnowblazeEntertainment.Tools.Spline
 		private Quaternion handleRotation;
 		private int selectedIndex = -1;
 
+		private SerializedProperty stepWorldUnitsProp;
+		private SerializedProperty roadRadiusProp;
+		private SerializedProperty borderRadiusProp;
+		private SerializedProperty loopProp;
+		private SerializedProperty speedCategoryProp;
+
+		private object[] splines;
+
+		private void OnEnable()
+		{
+			spline = serializedObject.targetObject as BezierSpline;
+			splines = serializedObject.targetObjects;
+
+			stepWorldUnitsProp = serializedObject.FindProperty("stepWorldUnits");
+			roadRadiusProp = serializedObject.FindProperty("roadRadius");
+			borderRadiusProp = serializedObject.FindProperty("borderRadius");
+			loopProp = serializedObject.FindProperty("loop");
+			speedCategoryProp = serializedObject.FindProperty("speedCategory");
+		}
+
 		public override void OnInspectorGUI() 
 		{
-			spline = target as BezierSpline;
-			EditorGUI.BeginChangeCheck();
-			float stepWorldUnits = EditorGUILayout.FloatField("Step world units", spline.StepWorldUnits);
-			if(EditorGUI.EndChangeCheck())
-			{
-				Undo.RecordObject(spline, "StepWorldUnits");
-				EditorUtility.SetDirty(spline);
-				spline.StepWorldUnits = stepWorldUnits;
-				spline.GenerateLUT();
-			}
-			EditorGUI.BeginChangeCheck();
-			float radius = EditorGUILayout.FloatField("Radius", spline.Radius);
-			if(EditorGUI.EndChangeCheck())
-			{
-				Undo.RecordObject(spline, "Radius");
-				EditorUtility.SetDirty(spline);
-				spline.Radius = radius;
-				spline.GenerateLUT();
-			}
-			EditorGUI.BeginChangeCheck();
-			bool loop = EditorGUILayout.Toggle("Loop", spline.Loop);
-			if (EditorGUI.EndChangeCheck()) 
-			{
-				Undo.RecordObject(spline, "Toggle Loop");
-				EditorUtility.SetDirty(spline);
-				spline.Loop = loop;
-			}
+			serializedObject.Update();
+            EditorGUI.BeginChangeCheck();
+
+			EditorGUILayout.PropertyField(stepWorldUnitsProp);
+			EditorGUILayout.PropertyField(roadRadiusProp);
+			EditorGUILayout.PropertyField(borderRadiusProp);
+			EditorGUILayout.PropertyField(loopProp);
+			EditorGUILayout.Space();
+			EditorGUILayout.PropertyField(speedCategoryProp);
+
 			if (selectedIndex >= 0 && selectedIndex < spline.ControlPointCount) 
 			{
 				DrawSelectedPointInspector();
 			}
+
 			if (GUILayout.Button("Add Curve")) 
 			{
 				Undo.RecordObject(spline, "Add Curve");
 				spline.AddCurve();
 				EditorUtility.SetDirty(spline);
 			}
-			if(GUILayout.Button("GenerateLUT"))
-			{
-				spline.GenerateLUT();
-			}
+
+			serializedObject.ApplyModifiedProperties();
+			
+			if (EditorGUI.EndChangeCheck())
+            {
+                spline.GenerateLUT();
+            }
 		}
 
 		private void DrawSelectedPointInspector() 
 		{
+			EditorGUILayout.Space();
 			GUILayout.Label("Selected Point");
-			EditorGUI.BeginChangeCheck();
-			Vector3 point = EditorGUILayout.Vector3Field("Position", spline.GetControlPoint(selectedIndex));
-			if (EditorGUI.EndChangeCheck()) 
+
+			if(EditorGUILayout.PropertyField(serializedObject.FindProperty("points").GetArrayElementAtIndex(selectedIndex), new GUIContent("Position")))
 			{
-				Undo.RecordObject(spline, "Move Point");
-				EditorUtility.SetDirty(spline);
-				spline.SetControlPoint(selectedIndex, point);
-				spline.GenerateLUT();
+				spline.SetControlPoint(selectedIndex, serializedObject.FindProperty("points").GetArrayElementAtIndex(selectedIndex).vector3Value);
 			}
-			EditorGUI.BeginChangeCheck();
-			BezierControlPointMode mode = (BezierControlPointMode)EditorGUILayout.EnumPopup("Mode", spline.GetControlPointMode(selectedIndex));
-			if (EditorGUI.EndChangeCheck()) 
+
+			if(EditorGUILayout.PropertyField(serializedObject.FindProperty("modes").GetArrayElementAtIndex((selectedIndex + 1) / 3), new GUIContent("Mode")))
 			{
-				Undo.RecordObject(spline, "Change Point Mode");
-				spline.SetControlPointMode(selectedIndex, mode);
-				EditorUtility.SetDirty(spline);
+				spline.SetControlPointMode(selectedIndex, (BezierControlPointMode)serializedObject.FindProperty("points").GetArrayElementAtIndex((selectedIndex + 1) / 3).enumValueIndex);
 			}
 		}
 
 		private void OnSceneGUI() 
 		{
-			spline = target as BezierSpline;
-			handleTransform = spline.transform;
-			handleRotation = UnityEditor.Tools.pivotRotation == PivotRotation.Local ? handleTransform.rotation : Quaternion.identity;
-			
-			Vector3 p0 = ShowPoint(0);
-			for (int i = 1; i < spline.ControlPointCount; i += 3) 
+			//spline = target as BezierSpline;			
+			foreach (var spline in splines)
 			{
-				Vector3 p1 = ShowPoint(i);
-				Vector3 p2 = ShowPoint(i + 1);
-				Vector3 p3 = ShowPoint(i + 2);
-				
-				Handles.color = Color.gray;
-				Handles.DrawLine(p0, p1);
-				Handles.DrawLine(p2, p3);
-				
-				Handles.DrawBezier(p0, p3, p1, p2, Color.blue, null, 2f);
-				p0 = p3;
+				this.spline = spline as BezierSpline;
+				handleTransform = this.spline.transform;
+				handleRotation = UnityEditor.Tools.pivotRotation == PivotRotation.Local ? handleTransform.rotation : Quaternion.identity;
+			
+				Vector3 p0 = ShowPoint(0);
+				for (int i = 1; i < this.spline.ControlPointCount; i += 3) 
+				{
+					Vector3 p1 = ShowPoint(i);
+					Vector3 p2 = ShowPoint(i + 1);
+					Vector3 p3 = ShowPoint(i + 2);
+					
+					Handles.color = Color.gray;
+					Handles.DrawLine(p0, p1);
+					Handles.DrawLine(p2, p3);
+					
+					Handles.DrawBezier(p0, p3, p1, p2, Color.blue, null, 2f);
+					p0 = p3;
+				}
+				ShowDirections();
+
+				SimulateMovement();
 			}
-			ShowDirections();
 		}
 
 		private void ShowDirections() 
@@ -153,6 +162,15 @@ namespace SnowblazeEntertainment.Tools.Spline
 				}
 			}
 			return point;
+		}
+
+		private void SimulateMovement()
+		{
+			if(spline.GetSpeed() == 0.0f) return;
+
+			spline.Progress = Time.realtimeSinceStartup % spline.GetSpeed() / spline.GetSpeed();
+
+			Handles.DrawWireCube(spline.SamplePoint(spline.Progress) + Vector3.one * 0.1f,  Vector3.one / 4);
 		}
 	}
 }

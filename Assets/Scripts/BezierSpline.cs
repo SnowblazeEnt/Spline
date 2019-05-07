@@ -13,57 +13,28 @@ namespace SnowblazeEntertainment.Tools.Spline
 		[SerializeField]
 		private BezierControlPointMode[] modes;
 		[SerializeField]
+		private float[] lengths;
+
+		[SerializeField]
 		private bool loop;
 		[SerializeField]
 		private float stepWorldUnits = 0.005f;
 		[SerializeField]
-		private float radius = 1.0f;
+		private float roadRadius = 1.0f;
 		[SerializeField]
 		private float borderRadius = 0.1f;
+
 		[SerializeField]
-		private float[] lengths;
+		private SpeedCategory speedCategory;
 
-		public bool Loop 
-		{
-			get 
-			{
-				return loop;
-			}
-			set 
-			{
-				loop = value;
-				if (value == true) 
-				{
-					modes[modes.Length - 1] = modes[0];
-					SetControlPoint(0, points[0]);
-				}
-			}
-		}
-		public float StepWorldUnits 
-		{ 
-			get 
-			{
-				return stepWorldUnits; 
-			}
+		[SerializeField]
+		private List<Vector3> lut;
+#if UNITY_EDITOR
+		public float Progress { get; set; }
+#endif
 
-			set
-			{
-				stepWorldUnits = value;
-			} 
-		}
-		public float Radius 
-		{ 
-			get 
-			{
-				return radius; 
-			}
 
-			set
-			{
-				radius = value;
-			} 
-		}
-
+		public bool Loop { get { return loop; } }
 		public int ControlPointCount { get { return points.Length; } }
 		public int CurveCount { get { return (points.Length - 1) / 3; } }
 
@@ -298,6 +269,10 @@ namespace SnowblazeEntertainment.Tools.Spline
 
 			GenerateMesh(lut);
 			GenerateBorders(lut);
+
+			//DrawSpline(lut);
+
+			this.lut = lut;
 		}
 
 		private void RecalculateLengths()
@@ -352,19 +327,19 @@ namespace SnowblazeEntertainment.Tools.Spline
 			List<Vector2> uvs = new List<Vector2>();
 
 			Vector3 cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
-			vertices.Add(lut[0] - cross * radius);
-			vertices.Add(lut[0] + cross * radius);
+			vertices.Add(lut[0] - cross * roadRadius);
+			vertices.Add(lut[0] + cross * roadRadius);
 
 			for (int i = 1; i < lut.Count - 1; i++)
 			{
 				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
-				vertices.Add(lut[i] - cross * radius);
-				vertices.Add(lut[i] + cross * radius);
+				vertices.Add(lut[i] - cross * roadRadius);
+				vertices.Add(lut[i] + cross * roadRadius);
 			}
 
 			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
-			vertices.Add(lut[lut.Count - 1] - cross * radius);
-			vertices.Add(lut[lut.Count - 1] + cross * radius);
+			vertices.Add(lut[lut.Count - 1] - cross * roadRadius);
+			vertices.Add(lut[lut.Count - 1] + cross * roadRadius);
 
 			triangles.Add(2);
 			triangles.Add(1);
@@ -410,19 +385,19 @@ namespace SnowblazeEntertainment.Tools.Spline
 			List<Vector2> uvs = new List<Vector2>();
 
 			Vector3 cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
-			vertices.Add(lut[0] - cross * (radius + borderRadius));
-			vertices.Add(lut[0] - cross * radius);
+			vertices.Add(lut[0] - cross * (roadRadius + borderRadius));
+			vertices.Add(lut[0] - cross * roadRadius);
 
 			for (int i = 1; i < lut.Count - 1; i++)
 			{
 				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
-				vertices.Add(lut[i] - cross * (radius + borderRadius));
-				vertices.Add(lut[i] - cross * radius);
+				vertices.Add(lut[i] - cross * (roadRadius + borderRadius));
+				vertices.Add(lut[i] - cross * roadRadius);
 			}
 
 			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
-			vertices.Add(lut[lut.Count - 1] - cross * (radius + borderRadius));
-			vertices.Add(lut[lut.Count - 1] - cross * radius);
+			vertices.Add(lut[lut.Count - 1] - cross * (roadRadius + borderRadius));
+			vertices.Add(lut[lut.Count - 1] - cross * roadRadius);
 
 			triangles.Add(2);
 			triangles.Add(1);
@@ -465,19 +440,19 @@ namespace SnowblazeEntertainment.Tools.Spline
 			uvs.Clear();
 
 			cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
-			vertices.Add(lut[0] + cross * radius);
-			vertices.Add(lut[0] + cross * (radius + borderRadius));
+			vertices.Add(lut[0] + cross * roadRadius);
+			vertices.Add(lut[0] + cross * (roadRadius + borderRadius));
 
 			for (int i = 1; i < lut.Count - 1; i++)
 			{
 				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
-				vertices.Add(lut[i] + cross * radius);
-				vertices.Add(lut[i] + cross * (radius + borderRadius));
+				vertices.Add(lut[i] + cross * roadRadius);
+				vertices.Add(lut[i] + cross * (roadRadius + borderRadius));
 			}
 
 			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
-			vertices.Add(lut[lut.Count - 1] + cross * radius);
-			vertices.Add(lut[lut.Count - 1] + cross * (radius + borderRadius));
+			vertices.Add(lut[lut.Count - 1] + cross * roadRadius);
+			vertices.Add(lut[lut.Count - 1] + cross * (roadRadius + borderRadius));
 
 			triangles.Add(2);
 			triangles.Add(1);
@@ -514,6 +489,18 @@ namespace SnowblazeEntertainment.Tools.Spline
 			meshRenderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Border.mat");
 			meshFilter = roadGO.AddComponent<MeshFilter>();
 			meshFilter.mesh = mesh;
+		}
+
+		public Vector3 SamplePoint(float time)
+		{
+			int index = Mathf.RoundToInt(Mathf.Lerp(0, lut.Count - 1, time));
+
+			return lut[index];
+		}
+
+		public float GetSpeed()
+		{
+			return (float)speedCategory;
 		}
 	}
 }
