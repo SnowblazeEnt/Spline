@@ -4,7 +4,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 {
 	public class SplineWalker : MonoBehaviour 
 	{
-		public BezierSpline spline;
+		public BezierSplineContainer splineContainer;
 
 		public float duration;
 
@@ -47,11 +47,11 @@ namespace SnowblazeEntertainment.Tools.Spline
 				}
 			}
 
-			Vector3 position = spline.GetPoint(progress);
+			Vector3 position = splineContainer.GetPoint(progress);
 			transform.localPosition = position;
 			if (lookForward) 
 			{
-				transform.LookAt(position + spline.GetDirection(progress));
+				transform.LookAt(position + splineContainer.GetDirection(progress));
 			}
 		}
 	}

@@ -3,20 +3,20 @@ using UnityEngine;
 
 namespace SnowblazeEntertainment.Tools.Spline
 {
-	[CustomEditor(typeof(BezierCurve))]
-	public class BezierCurveInspector : Editor 
+	[CustomEditor(typeof(BezierCurveContainer))]
+	public class BezierCurveContainerInspector : Editor 
 	{
 		private const int lineSteps = 10;
 		private const float directionScale = 0.5f;
 
-		private BezierCurve curve;
+		private BezierCurveContainer curveContainer;
 		private Transform handleTransform;
 		private Quaternion handleRotation;
 
 		private void OnSceneGUI() 
 		{
-			curve = target as BezierCurve;
-			handleTransform = curve.transform;
+			curveContainer = target as BezierCurveContainer;
+			handleTransform = curveContainer.transform;
 			handleRotation = UnityEditor.Tools.pivotRotation == PivotRotation.Local ? handleTransform.rotation : Quaternion.identity;
 			
 			Vector3 p0 = ShowPoint(0);
@@ -35,25 +35,25 @@ namespace SnowblazeEntertainment.Tools.Spline
 		private void ShowDirections() 
 		{
 			Handles.color = Color.green;
-			Vector3 point = curve.GetPoint(0f);
-			Handles.DrawLine(point, point + curve.GetDirection(0f) * directionScale);
+			Vector3 point = curveContainer.GetPoint(0f);
+			Handles.DrawLine(point, point + curveContainer.GetDirection(0f) * directionScale);
 			for (int i = 1; i <= lineSteps; i++) 
 			{
-				point = curve.GetPoint(i / (float)lineSteps);
-				Handles.DrawLine(point, point + curve.GetDirection(i / (float)lineSteps) * directionScale);
+				point = curveContainer.GetPoint(i / (float)lineSteps);
+				Handles.DrawLine(point, point + curveContainer.GetDirection(i / (float)lineSteps) * directionScale);
 			}
 		}
 
 		private Vector3 ShowPoint(int index) 
 		{
-			Vector3 point = handleTransform.TransformPoint(curve.points[index]);
+			Vector3 point = handleTransform.TransformPoint(curveContainer.curve.points[index]);
 			EditorGUI.BeginChangeCheck();
 			point = Handles.DoPositionHandle(point, handleRotation);
 			if (EditorGUI.EndChangeCheck()) 
 			{
-				Undo.RecordObject(curve, "Move Point");
-				EditorUtility.SetDirty(curve);
-				curve.points[index] = handleTransform.InverseTransformPoint(point);
+				Undo.RecordObject(curveContainer, "Move Point");
+				EditorUtility.SetDirty(curveContainer);
+				curveContainer.curve.points[index] = handleTransform.InverseTransformPoint(point);
 			}
 			return point;
 		}

@@ -4,7 +4,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 {
 	public class SplineDecorator : MonoBehaviour 
 	{
-		public BezierSpline spline;
+		public BezierSplineContainer splineContainer;
 
 		public int frequency;
 
@@ -19,7 +19,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 				return;
 			}
 			float stepSize = frequency * items.Length;
-			if (spline.Loop || stepSize == 1) 
+			if (splineContainer.Loop || stepSize == 1) 
 			{
 				stepSize = 1f / stepSize;
 			}
@@ -32,11 +32,11 @@ namespace SnowblazeEntertainment.Tools.Spline
 				for (int i = 0; i < items.Length; i++, p++) 
 				{
 					Transform item = Instantiate(items[i]) as Transform;
-					Vector3 position = spline.GetPoint(p * stepSize);
+					Vector3 position = splineContainer.GetPoint(p * stepSize);
 					item.transform.localPosition = position;
 					if (lookForward) 
 					{
-						item.transform.LookAt(position + spline.GetDirection(p * stepSize));
+						item.transform.LookAt(position + splineContainer.GetDirection(p * stepSize));
 					}
 					item.transform.parent = transform;
 				}
