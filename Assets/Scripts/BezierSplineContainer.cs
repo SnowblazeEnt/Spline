@@ -30,9 +30,64 @@ namespace SnowblazeEntertainment.Tools.Spline
 #endif
 
 
-		public bool Loop { get { return loop; } }
+		public float StepWorldUnits 
+		{ 
+			get 
+			{ 
+				return stepWorldUnits; 
+			}
+			set
+			{
+				stepWorldUnits = value;
+			} 
+		}
+		public bool Loop 
+		{ 
+			get
+			{
+				return loop;
+			}
+			set
+			{
+				loop = value;
+			}
+		}
+		public float RoadRadius
+		{
+			get
+			{
+				return roadRadius;
+			}
+			set
+			{
+				roadRadius = value;
+			}
+		}
+		public float BorderRadius
+		{
+			get
+			{
+				return borderRadius;
+			}
+			set
+			{
+				borderRadius = value;
+			}
+		}
+		public SpeedCategory SpeedCategory
+		{
+			get
+			{
+				return speedCategory;
+			}
+			set
+			{
+				speedCategory = value;
+			}
+		}
 		public int ControlPointCount { get { return spline.curves.Length * 3 + 1; } }
 		public int CurveCount { get { return spline.curves.Length; } }
+		public BezierSpline Spline {get { return spline;}}
 
 		public Vector3 GetControlPoint(int index) 
 		{
@@ -157,6 +212,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 				curve.points[0] = middle;
 				curve.points[1] = middle + enforcedTangent;
 				spline.curves[(enforcedIndex - 1) / 3] = curve;
+				Debug.Log(enforcedTangent);
 			}
 			else
 			{
