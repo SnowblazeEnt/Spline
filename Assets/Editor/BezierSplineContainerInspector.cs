@@ -30,6 +30,8 @@ namespace SnowblazeEntertainment.Tools.Spline
 		private SerializedProperty borderRadiusProp;
 		private SerializedProperty loopProp;
 		private SerializedProperty speedCategoryProp;
+		private SerializedProperty t1Prop;
+		private SerializedProperty t2Prop;
 
 		private object[] splineContainers;
 
@@ -43,6 +45,8 @@ namespace SnowblazeEntertainment.Tools.Spline
 			borderRadiusProp = serializedObject.FindProperty("borderRadius");
 			loopProp = serializedObject.FindProperty("loop");
 			speedCategoryProp = serializedObject.FindProperty("speedCategory");
+			t1Prop = serializedObject.FindProperty("t1");
+			t2Prop = serializedObject.FindProperty("t2");
 		}
 
 		public override void OnInspectorGUI() 
@@ -89,7 +93,37 @@ namespace SnowblazeEntertainment.Tools.Spline
 			}
 
 			EditorGUI.BeginChangeCheck();
-			SpeedCategory speedCategory = (SpeedCategory)EditorGUILayout.EnumPopup("Loop", (SpeedCategory)speedCategoryProp.enumValueIndex);
+			float t1 = t1Prop.floatValue;
+			float t2 = t2Prop.floatValue;
+			EditorGUILayout.MinMaxSlider(ref t1, ref t2, 0.0f, 1.0f);
+			if(EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(splineContainer, "T1/T2");
+				EditorUtility.SetDirty(splineContainer);
+				splineContainer.T1 = t1;
+				splineContainer.T2 = t2;
+			}
+
+			// EditorGUI.BeginChangeCheck();
+			// float t1 = EditorGUILayout.FloatField("T1", t1Prop.floatValue);
+			// if (EditorGUI.EndChangeCheck()) 
+			// {
+			// 	Undo.RecordObject(splineContainer, "T1");
+			// 	EditorUtility.SetDirty(splineContainer);
+			// 	splineContainer.T1 = t1;
+			// }
+
+			// EditorGUI.BeginChangeCheck();
+			// float t2 = EditorGUILayout.FloatField("T2", t2Prop.floatValue);
+			// if (EditorGUI.EndChangeCheck()) 
+			// {
+			// 	Undo.RecordObject(splineContainer, "T2");
+			// 	EditorUtility.SetDirty(splineContainer);
+			// 	splineContainer.T2 = t2;
+			// }
+
+			EditorGUI.BeginChangeCheck();
+			SpeedCategory speedCategory = (SpeedCategory)EditorGUILayout.EnumPopup("Speed category", (SpeedCategory)speedCategoryProp.enumValueIndex);
 			if (EditorGUI.EndChangeCheck()) 
 			{
 				Undo.RecordObject(splineContainer, "SpeedCategory");
@@ -209,15 +243,16 @@ namespace SnowblazeEntertainment.Tools.Spline
 				}
 				ShowDirections();
 
+				ShowStartAndEnd();
+
 				SimulateMovement();
 
-				//TODO: remove (debug stuff)
-				foreach(var curve in this.splineContainer.Spline.curves)
-				{
-					BezierCurve cu = curve;
-					Bounds bound = Bezier.GetBoundingBox(ref cu);
-					Handles.DrawWireCube(bound.center, bound.size);
-				}
+				// foreach(var curve in this.splineContainer.Spline.curves)
+				// {
+				// 	BezierCurve cu = curve;
+				// 	Bounds bound = Bezier.GetBoundingBox(ref cu);
+				// 	Handles.DrawWireCube(bound.center + this.splineContainer.transform.localPosition, bound.size);
+				// }
 			}
 		}
 
@@ -261,6 +296,15 @@ namespace SnowblazeEntertainment.Tools.Spline
 				}
 			}
 			return point;
+		}
+
+		private void ShowStartAndEnd()
+		{
+			Handles.color = Color.yellow;
+			Handles.DrawWireCube(splineContainer.SamplePoint(0.0f) + Vector3.one * 0.1f,  Vector3.one / 4);
+			Handles.color = Color.red;
+			Handles.DrawWireCube(splineContainer.SamplePoint(1.0f) + Vector3.one * 0.1f,  Vector3.one / 4);
+			Handles.color = Color.green;
 		}
 
 		private void SimulateMovement()

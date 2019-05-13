@@ -161,8 +161,8 @@ namespace SnowblazeEntertainment.Tools.Spline
 				{
 					float m1 = -Mathf.Sqrt(b * b - a * c);
 					float m2 = -a + b;
-					float v1 = -(m1 + m2) / b;
-					float v2 = -(-m1 + m2) / b;
+					float v1 = -(m1 + m2) / d;
+					float v2 = -(-m1 + m2) / d;
 
 					return new List<float>() { v1, v2 };
 				}

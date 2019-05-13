@@ -19,6 +19,10 @@ namespace SnowblazeEntertainment.Tools.Spline
 		private float roadRadius = 1.0f;
 		[SerializeField]
 		private float borderRadius = 0.1f;
+		[SerializeField]
+        private float t1;
+		[SerializeField]
+        private float t2;
 
 		[SerializeField]
 		private SpeedCategory speedCategory;
@@ -83,6 +87,28 @@ namespace SnowblazeEntertainment.Tools.Spline
 			set
 			{
 				speedCategory = value;
+			}
+		}
+		public float T1
+		{
+			get
+			{
+				return t1;
+			}
+			set
+			{
+				t1 = value;
+			}
+		}
+		public float T2
+		{
+			get
+			{
+				return t2;
+			}
+			set
+			{
+				t2 = value;
 			}
 		}
 		public int ControlPointCount { get { return spline.curves.Length * 3 + 1; } }
@@ -212,7 +238,6 @@ namespace SnowblazeEntertainment.Tools.Spline
 				curve.points[0] = middle;
 				curve.points[1] = middle + enforcedTangent;
 				spline.curves[(enforcedIndex - 1) / 3] = curve;
-				Debug.Log(enforcedTangent);
 			}
 			else
 			{
@@ -553,7 +578,8 @@ namespace SnowblazeEntertainment.Tools.Spline
 
 		public Vector3 SamplePoint(float time)
 		{
-			int index = Mathf.RoundToInt(Mathf.Lerp(0, lut.Count - 1, time));
+			float mappedTime = Mathf.Lerp(t1, t2, time);
+			int index = Mathf.RoundToInt(Mathf.Lerp(0, lut.Count - 1, mappedTime));
 
 			return lut[index];
 		}
