@@ -32,6 +32,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 		private SerializedProperty speedCategoryProp;
 		private SerializedProperty t1Prop;
 		private SerializedProperty t2Prop;
+		private SerializedProperty widthCurveProp;
 
 		private object[] splineContainers;
 
@@ -47,6 +48,7 @@ namespace SnowblazeEntertainment.Tools.Spline
 			speedCategoryProp = serializedObject.FindProperty("speedCategory");
 			t1Prop = serializedObject.FindProperty("t1");
 			t2Prop = serializedObject.FindProperty("t2");
+			widthCurveProp = serializedObject.FindProperty("widthCurve");
 		}
 
 		public override void OnInspectorGUI() 
@@ -102,6 +104,16 @@ namespace SnowblazeEntertainment.Tools.Spline
 				EditorUtility.SetDirty(splineContainer);
 				splineContainer.T1 = t1;
 				splineContainer.T2 = t2;
+			}
+
+			EditorGUI.BeginChangeCheck();
+			AnimationCurve curve = EditorGUILayout.CurveField("Road width", widthCurveProp.animationCurveValue, Color.red, new Rect(0,0,1,2));
+			if(EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(splineContainer, "WidthCurve");
+				EditorUtility.SetDirty(splineContainer);
+				splineContainer.WidthCurve = curve;
+				splineContainer.GenerateLUT();
 			}
 
 			// EditorGUI.BeginChangeCheck();

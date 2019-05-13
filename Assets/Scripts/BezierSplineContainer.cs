@@ -23,6 +23,8 @@ namespace SnowblazeEntertainment.Tools.Spline
         private float t1;
 		[SerializeField]
         private float t2;
+		[SerializeField]
+		private AnimationCurve widthCurve;
 
 		[SerializeField]
 		private SpeedCategory speedCategory;
@@ -109,6 +111,17 @@ namespace SnowblazeEntertainment.Tools.Spline
 			set
 			{
 				t2 = value;
+			}
+		}
+		public AnimationCurve WidthCurve
+		{
+			get
+			{
+				return widthCurve;
+			}
+			set
+			{
+				widthCurve = value;
 			}
 		}
 		public int ControlPointCount { get { return spline.curves.Length * 3 + 1; } }
@@ -412,19 +425,20 @@ namespace SnowblazeEntertainment.Tools.Spline
 			List<Vector2> uvs = new List<Vector2>();
 
 			Vector3 cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
-			vertices.Add(lut[0] - cross * roadRadius);
-			vertices.Add(lut[0] + cross * roadRadius);
+			vertices.Add(lut[0] - cross * roadRadius * widthCurve.Evaluate(0.0f));
+			vertices.Add(lut[0] + cross * roadRadius * widthCurve.Evaluate(0.0f));
 
 			for (int i = 1; i < lut.Count - 1; i++)
 			{
+				float percent = (float)i / (float)(lut.Count - 1);
 				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
-				vertices.Add(lut[i] - cross * roadRadius);
-				vertices.Add(lut[i] + cross * roadRadius);
+				vertices.Add(lut[i] - cross * roadRadius * widthCurve.Evaluate(percent));
+				vertices.Add(lut[i] + cross * roadRadius * widthCurve.Evaluate(percent));
 			}
 
 			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
-			vertices.Add(lut[lut.Count - 1] - cross * roadRadius);
-			vertices.Add(lut[lut.Count - 1] + cross * roadRadius);
+			vertices.Add(lut[lut.Count - 1] - cross * roadRadius * widthCurve.Evaluate(1.0f));
+			vertices.Add(lut[lut.Count - 1] + cross * roadRadius * widthCurve.Evaluate(1.0f));
 
 			triangles.Add(2);
 			triangles.Add(1);
@@ -470,19 +484,20 @@ namespace SnowblazeEntertainment.Tools.Spline
 			List<Vector2> uvs = new List<Vector2>();
 
 			Vector3 cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
-			vertices.Add(lut[0] - cross * (roadRadius + borderRadius));
-			vertices.Add(lut[0] - cross * roadRadius);
+			vertices.Add(lut[0] - cross * (roadRadius * widthCurve.Evaluate(0.0f) + borderRadius));
+			vertices.Add(lut[0] - cross * roadRadius * widthCurve.Evaluate(0.0f));
 
 			for (int i = 1; i < lut.Count - 1; i++)
 			{
+				float percent = (float)i / (float)(lut.Count - 1);
 				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
-				vertices.Add(lut[i] - cross * (roadRadius + borderRadius));
-				vertices.Add(lut[i] - cross * roadRadius);
+				vertices.Add(lut[i] - cross * (roadRadius * widthCurve.Evaluate(percent) + borderRadius));
+				vertices.Add(lut[i] - cross * roadRadius * widthCurve.Evaluate(percent));
 			}
 
 			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
-			vertices.Add(lut[lut.Count - 1] - cross * (roadRadius + borderRadius));
-			vertices.Add(lut[lut.Count - 1] - cross * roadRadius);
+			vertices.Add(lut[lut.Count - 1] - cross * (roadRadius * widthCurve.Evaluate(1.0f) + borderRadius));
+			vertices.Add(lut[lut.Count - 1] - cross * roadRadius * widthCurve.Evaluate(1.0f));
 
 			triangles.Add(2);
 			triangles.Add(1);
@@ -525,19 +540,20 @@ namespace SnowblazeEntertainment.Tools.Spline
 			uvs.Clear();
 
 			cross = Vector3.Cross(Vector3.up, (lut[1] - lut[0]).normalized);
-			vertices.Add(lut[0] + cross * roadRadius);
-			vertices.Add(lut[0] + cross * (roadRadius + borderRadius));
+			vertices.Add(lut[0] + cross * roadRadius * widthCurve.Evaluate(0.0f));
+			vertices.Add(lut[0] + cross * (roadRadius * widthCurve.Evaluate(0.0f) + borderRadius));
 
 			for (int i = 1; i < lut.Count - 1; i++)
 			{
+				float percent = (float)i / (float)(lut.Count - 1);
 				cross = Vector3.Cross(Vector3.up, (lut[i + 1] - lut[i - 1]).normalized);
-				vertices.Add(lut[i] + cross * roadRadius);
-				vertices.Add(lut[i] + cross * (roadRadius + borderRadius));
+				vertices.Add(lut[i] + cross * roadRadius * widthCurve.Evaluate(percent));
+				vertices.Add(lut[i] + cross * (roadRadius * widthCurve.Evaluate(percent) + borderRadius));
 			}
 
 			cross = Vector3.Cross(Vector3.up, (lut[lut.Count - 1] - lut[lut.Count - 2]).normalized);
-			vertices.Add(lut[lut.Count - 1] + cross * roadRadius);
-			vertices.Add(lut[lut.Count - 1] + cross * (roadRadius + borderRadius));
+			vertices.Add(lut[lut.Count - 1] + cross * roadRadius * widthCurve.Evaluate(1.0f));
+			vertices.Add(lut[lut.Count - 1] + cross * (roadRadius * widthCurve.Evaluate(1.0f) + borderRadius));
 
 			triangles.Add(2);
 			triangles.Add(1);
