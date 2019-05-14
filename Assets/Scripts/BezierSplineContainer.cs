@@ -300,6 +300,11 @@ namespace SnowblazeEntertainment.Tools.Spline
 			return GetVelocity(t).normalized;
 		}
 
+		// public Vector3 GetNormal(float t)
+		// {
+		// 	return Bezier.GetNormal(ref spline.curves[0], t);
+		// }
+
 		public void AddCurve() 
 		{
 			Vector3 point = GetControlPoint(ControlPointCount - 1);
@@ -335,11 +340,42 @@ namespace SnowblazeEntertainment.Tools.Spline
 				BezierControlPointMode.Free,
 				BezierControlPointMode.Free
 			};
+
+			GenerateLUT();
 		}
 
 		public void GenerateLUT()
 		{
 			RecalculateLengths();
+
+			var intersections = Bezier.SelfIntersects(ref spline.curves[0]);
+			//var curves = Bezier.Reduce(ref spline.curves[0]);
+			//var extremas = Bezier.GetExtrema(ref spline.curves[0]).SelectMany(x => x).ToList();
+			//extremas.Sort((a,b) => a.CompareTo(b));
+			//var hull = Bezier.GetHull(ref spline.curves[0], 0.5f);
+			// foreach (var hullPoint in hull)
+			// {
+			// 	GameObject go =GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			// 	go.transform.position = hullPoint;
+			// }
+			// foreach (var extrema in extremas)
+			// {
+			// 	GameObject go =GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			// 	go.transform.position = SamplePoint(extrema);
+			// }
+			// foreach (var curve in curves)
+			// {
+			// 	GameObject go =GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			// 	go.transform.position = curve.points[0];
+			// 	go =GameObject.CreatePrimitive(PrimitiveType.Cube);
+			// 	go.transform.position = curve.points[curve.points.Length - 1];
+			// }
+			foreach (var intersection in intersections)
+			{
+				GameObject go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+				go.transform.position = intersection;
+			}
+			Debug.Log(intersections.Count);
 
 			List<Vector3> tempLUT = new List<Vector3>();
 			List<Vector3> lut = new List<Vector3>();

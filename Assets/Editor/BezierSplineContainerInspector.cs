@@ -259,12 +259,25 @@ namespace SnowblazeEntertainment.Tools.Spline
 
 				SimulateMovement();
 
-				// foreach(var curve in this.splineContainer.Spline.curves)
+				// Handles.color = Color.white;
+				// for (float i = 0.0f; i < 1.0f; i+=0.02f)
 				// {
-				// 	BezierCurve cu = curve;
-				// 	Bounds bound = Bezier.GetBoundingBox(ref cu);
-				// 	Handles.DrawWireCube(bound.center + this.splineContainer.transform.localPosition, bound.size);
+				// 	Vector3 point = this.splineContainer.GetPoint(i);
+				// 	Handles.DrawLine(point, point + this.splineContainer.GetNormal(i) * directionScale);
 				// }
+
+				foreach(var curve in this.splineContainer.Spline.curves)
+				{
+					BezierCurve cu = curve;
+					var reduced = Bezier.Reduce(ref cu);
+					foreach (var c in reduced)
+					{
+						Bounds bound = Bezier.GetBoundingBox(c);
+						Handles.DrawWireCube(bound.center + this.splineContainer.transform.localPosition, bound.size);
+					}
+					// Bounds bound = Bezier.GetBoundingBox(cu);
+					// Handles.DrawWireCube(bound.center + this.splineContainer.transform.localPosition, bound.size);
+				}
 			}
 		}
 
